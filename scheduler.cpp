@@ -3,8 +3,8 @@
 // a1745070, Archie, Verma
 // OCTOPUS
 /*
-created by Shue Hong Lee
-a1768127@student.adelaide.edu.au
+created by Andrey Kan
+andrey.kan@adelaide.edu.au
 2021
 */
 #include <iostream>
