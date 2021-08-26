@@ -1,10 +1,10 @@
-// a, Shue Hong, Lee
+// a1768127, Shue Hong, Lee
 // a1761407, Kwan Han, Li
-// a, Banner, Bruce
-// octopus
+// a1745070, Archie, Verma
+// avengers
 /*
-created by Andrey Kan
-andrey.kan@adelaide.edu.au
+created by Shue Hong Lee
+a1768127@student.adelaide.edu.au
 2021
 */
 #include <iostream>
