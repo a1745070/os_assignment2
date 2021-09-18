@@ -7,14 +7,17 @@ created by Andrey Kan
 andrey.kan@adelaide.edu.au
 2021
 */
+
 #include <iostream>
 #include <fstream>
 #include <deque>
 #include <vector>
+#include <algorithm>
 using namespace std;
 
 const int TIME_ALLOWANCE = 8;  // allow to use up to this number of time slots at once
 const int PRINT_LOG = 0; // print detailed execution trace
+const int run = 32;
 
 class Customer
 {
@@ -35,22 +38,27 @@ public:
     }
 };
 
-class Event
+class CID_and_CPriority
 {
 public:
-    int event_time;
-    int customer_id;  // each event involes exactly one customer
+    int priorities;
+    int customer_id;  // each CID_and_CPriority involes exactly one customer
 
-    Event(int par_event_time, int par_customer_id)
+    CID_and_CPriority(int par_priorities, int par_customer_id)
     {
-        event_time = par_event_time;
+        priorities = par_priorities;
         customer_id = par_customer_id;
     }
 };
 
+bool comparison(CID_and_CPriority a, CID_and_CPriority b)
+{
+    return (a.priorities > b.priorities);
+}
+
 void initialize_system(
     ifstream &in_file,
-    deque<Event> &arrival_events,
+    deque<CID_and_CPriority> &CIDs_and_CPriorities,
     vector<Customer> &customers)
 {
     string name;
@@ -63,9 +71,9 @@ void initialize_system(
         Customer customer_from_file(name, priority, arrival_time, slots_requested);
         customers.push_back(customer_from_file);
 
-        // new customer arrival event
-        Event arrival_event(arrival_time, customer_id);
-        arrival_events.push_back(arrival_event);
+        // new customer CID_and_CPriority
+        CID_and_CPriority new_CID_and_CPriority(priority, customer_id);
+        CIDs_and_CPriorities.push_back(new_CID_and_CPriority);
 
         customer_id++;
     }
@@ -75,7 +83,7 @@ void print_state(
     ofstream &out_file,
     int current_time,
     int current_id,
-    const deque<Event> &arrival_events,
+    const deque<CID_and_CPriority> &CIDs_and_CPriorities,
     const deque<int> &customer_queue)
 {
     /************If (PRINT_LOG != 0), the program will not output .txt file*************/
@@ -89,9 +97,9 @@ void print_state(
     /***********************************************************************************/
     
     cout << current_time << ", " << current_id << '\n';
-    for (int i = 0; i < arrival_events.size(); i++)
+    for (int i = 0; i < CIDs_and_CPriorities.size(); i++)
     {
-        cout << "\t" << arrival_events[i].event_time << ", " << arrival_events[i].customer_id << ", ";
+        cout << "\t" << CIDs_and_CPriorities[i].priorities << ", " << CIDs_and_CPriorities[i].customer_id << ", ";
     }
     cout << '\n';
     for (int i = 0; i < customer_queue.size(); i++)
@@ -100,6 +108,10 @@ void print_state(
     }
     cout << '\n';
 }
+
+
+//void sjf_scheduling(){}
+
 
 // process command line arguments
 int main(int argc, char *argv[])
@@ -117,66 +129,40 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    deque<Event> arrival_events; // new customer arrivals
+    deque<CID_and_CPriority> CIDs_and_CPriorities; // new customer arrivals
     vector<Customer> customers; // information about each customer
 
-    // read information from file, initialize events queue
-    initialize_system(in_file, arrival_events, customers);
-
+    // read information from file, initialize CID_and_CPrioritys queue
+    initialize_system(in_file, CIDs_and_CPriorities, customers);
+    sort(CIDs_and_CPriorities.begin(), CIDs_and_CPriorities.end(), comparison);
+    
     int current_id = -1; // who is using the machine now, -1 means nobody
-    int time_out = -1; // time when current customer will be preempted
     deque<int> queue; // waiting queue
 
-    // step by step simulation of each time slot
     bool all_done = false;
-    for (int current_time = 0; !all_done; current_time++)
+    for(int time=0; !all_done; time++)
     {
-        // welcome newly arrived customers
-        while (!arrival_events.empty() && (current_time == arrival_events[0].event_time))
+        if(!CIDs_and_CPriorities.empty())//&& (time == CIDs_and_CPriorities[0].CID_and_CPriority_time))
         {
-            queue.push_back(arrival_events[0].customer_id);
-            arrival_events.pop_front();
+            queue.push_back(CIDs_and_CPriorities[0].customer_id);
+            CIDs_and_CPriorities.pop_front();
         }
 
-        // check if we need to take a customer off the machine
-        if (current_id >= 0)
+        if(current_id >= 0)
         {
-            if (current_time == time_out)
-            {
-                int last_run = current_time - customers[current_id].playing_since;
-                customers[current_id].slots_remaining -= last_run;
-                if (customers[current_id].slots_remaining > 0)
-                {
-                    // customer is not done yet, waiting for the next chance to play
-                    queue.push_back(current_id);
-                }
-                current_id = -1; // the machine is free now
-            }
+            current_id = -1;
         }
 
-        // if machine is empty, schedule a new customer
-        if (current_id == -1)
+        if(current_id == -1)
         {
-            if (!queue.empty()) // is anyone waiting?
+            if(!queue.empty())
             {
                 current_id = queue.front();
                 queue.pop_front();
-                if (TIME_ALLOWANCE > customers[current_id].slots_remaining)
-                {
-                    time_out = current_time + customers[current_id].slots_remaining;
-                }
-                else
-                {
-                    time_out = current_time + TIME_ALLOWANCE;
-                }
-                customers[current_id].playing_since = current_time;
             }
         }
-        print_state(out_file, current_time, current_id, arrival_events, queue);
-
-        // exit loop when there are no new arrivals, no waiting and no playing customers
-        all_done = (arrival_events.empty() && queue.empty() && (current_id == -1));
+        all_done = (CIDs_and_CPriorities.empty() && queue.empty() && current_id == -1);
+        print_state(out_file, time, current_id, CIDs_and_CPriorities, queue);
     }
-
     return 0;
 }
