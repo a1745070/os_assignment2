@@ -56,10 +56,6 @@ public:
     }
 };
 
-bool comparison(Customer a, Customer b)
-{
-    return (a.priority > b.priority);
-}
 
 void initialize_system(
     ifstream &in_file,
@@ -115,10 +111,12 @@ void print_state(
     cout << '\n';
 }
 
+/*
 bool compare(Customer a, Customer b)
 {
     return(a.slots_requested > b.slots_requested);
 }
+
 
 void sjf_scheduling(deque<Customer> &customers)
 {
@@ -181,7 +179,7 @@ void sjf_scheduling(deque<Customer> &customers)
     //SJF for Regular Priority Customers
    
 }
-
+*/
 
 // process command line arguments
 int main(int argc, char *argv[])
@@ -204,15 +202,42 @@ int main(int argc, char *argv[])
 
     // read information from file, initialize customers queue
     initialize_system(in_file, arrival_events, customers);
-    sort(customers.begin(), customers.end(), comparison);
-    sjf_scheduling(customers);
+
+    deque<Customer> high_priority_customers;
+    deque<Customer> low_priority_customers;
+    
+    for(int i=0; i<customers.size(); i++)
+    {
+        if(customers[i].priority == 0)
+        {
+            high_priority_customers.push_back(customers[i]);
+        }
+        else
+        {
+            low_priority_customers.push_back(customers[i]);
+        }
+    }
+
+    cout<<"Priority 0:"<<endl;
+    for(int j=0; j<high_priority_customers.size(); j++)
+    {
+        cout<<high_priority_customers[j].customer_id<<endl;
+    }
+
+    cout<<"Priority 1:"<<endl;
+    for(int j=0; j<low_priority_customers.size(); j++)
+    {
+        cout<<low_priority_customers[j].customer_id<<endl;
+    }
+
+    //sjf_scheduling(customers);
 
 
-/************************************************************************/
+/***********************************************************************
 /*                   Copy results to queue for printing                 */
 /************************************************************************/ 
 
-    int current_id = -1; // who is using the machine now, -1 means nobody
+   /* int current_id = -1; // who is using the machine now, -1 means nobody
     deque<int> queue; // waiting queue
 
     bool all_done = false;
@@ -239,7 +264,7 @@ int main(int argc, char *argv[])
         }
         print_state(out_file, time, current_id, customers, queue);
         all_done = (customers.empty() && queue.empty() && current_id == -1);
-    }
+    }*/
 
     return 0;
 }
