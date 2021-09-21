@@ -164,6 +164,7 @@ void sjf_scheduling(deque<Customer> &customers)
         }
     }
 
+
     sort(high_priority_customer.begin(), high_priority_customer.end(), compare);
 
     next_customer = high_priority_customer[0].customer_id;
