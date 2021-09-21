@@ -28,8 +28,6 @@ public:
     int arrival_time;
     int slots_requested; // how many time slots are needed
     int playing_since;
-    int wait_time;
-    int turnaround_time;
     int finish_time;
 
     Customer(string par_name, int par_customer_id, int par_priority, int par_arrival_time, int par_slots_requested)
@@ -115,10 +113,6 @@ void print_state(
     cout << '\n';
 }
 
-bool compare(Customer a, Customer b)
-{
-    return(a.slots_requested > b.slots_requested);
-}
 
 void sjf_scheduling(deque<Customer> &customers)
 {
@@ -136,49 +130,81 @@ void sjf_scheduling(deque<Customer> &customers)
         }
     }
 
-    int index;
+    int done;
     int current_time;
-    int next_customer;
-    int count;
-    int length;
+    int index;
+    int min;
+
+    index = -1;
+    done = flag;
+    current_time = 0;
+    min = INT_MAX;
 
     //SJF For High Priority Customers
-    index = 0;
-    count = flag;
-    current_time = 0;
-    deque<Customer> high_priority_customer;
-
-    for(int i=flag; i<total_num_of_customers; i++)
+    while(done < total_num_of_customers)
     {
-        for(int j=count; j<total_num_of_customers; j++)
+        for(int i=flag; i<customers.size(); i++)
         {
-            if(customers[j].arrival_time <= current_time)
+            if(customers[i].arrival_time <= current_time)
             {
-                high_priority_customer.push_back(customers[j]);
-                count++;
-            }
-            else
-            {
-                break;
+                if(customers[i].slots_requested < min && customers[i].finish_time == 0)
+                {
+                    index = i;
+                    cout<<"index: "<<index<<" ";
+                    min = customers[i].slots_requested;
+                    cout<<"current min: "<<min<<endl;
+                }
             }
         }
+
+        if(index >= 0)
+        {
+            done++;
+            min = INT_MAX;
+            current_time = current_time + customers[index].slots_requested;
+            customers[index].finish_time = current_time;
+            index = -1;
+        }
+        else
+        {
+            current_time++;
+        }
     }
+    
 
-    sort(high_priority_customer.begin(), high_priority_customer.end(), compare);
+    index = -1;
+    done = 0;
+    current_time = 0;
+    min = INT_MAX;
 
-    next_customer = high_priority_customer[0].customer_id;
-    customers[next_customer].finish_time = customers[next_customer].arrival_time + customers[next_customer].slots_requested;
-    customers[next_customer].wait_time = current_time - customers[next_customer].arrival_time;
-    customers[next_customer].turnaround_time = customers[next_customer].wait_time + customers[next_customer].finish_time;
-    current_time = current_time + customers[next_customer].finish_time;
-
-    for(int i=0; i<high_priority_customer.size(); i++)
-    {
-        high_priority_customer[i] = high_priority_customer[i+1];
-    }
-   
     //SJF for Regular Priority Customers
-   
+    while(done < flag)
+    {
+        for(int i=0; i<flag; i++)
+        {
+            if(customers[i].arrival_time <= current_time)
+            {
+                if(customers[i].slots_requested < min && customers[i].finish_time == 0)
+                {
+                    index = i;
+                    min = customers[i].slots_requested;
+                }
+            }
+        }
+
+        if(index >= 0)
+        {
+            done++;
+            min = INT_MAX;
+            current_time = current_time + customers[index].slots_requested;
+            customers[index].finish_time = current_time;
+            index = -1;
+        }
+        else
+        {
+            current_time++;
+        }
+    }
 }
 
 
@@ -211,7 +237,7 @@ int main(int argc, char *argv[])
 /*                   Copy results to queue for printing                 */
 /************************************************************************/ 
 
-    int current_id = -1; // who is using the machine now, -1 means nobody
+/*    int current_id = -1; // who is using the machine now, -1 means nobody
     deque<int> queue; // waiting queue
 
     bool all_done = false;
@@ -238,7 +264,7 @@ int main(int argc, char *argv[])
         }
         print_state(out_file, time, current_id, customers, queue);
         all_done = (customers.empty() && queue.empty() && current_id == -1);
-    }
+    }*/
 
     return 0;
 }
