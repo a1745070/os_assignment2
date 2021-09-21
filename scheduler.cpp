@@ -28,9 +28,9 @@ public:
     int arrival_time;
     int slots_requested; // how many time slots are needed
     int playing_since;
-    int wait_time;
-    int turnaround_time;
     int finish_time;
+    int turnaround_time;
+    int wait_time;
 
     Customer(string par_name, int par_customer_id, int par_priority, int par_arrival_time, int par_slots_requested)
     {
@@ -111,75 +111,52 @@ void print_state(
     cout << '\n';
 }
 
-/*
-bool compare(Customer a, Customer b)
+/*void swap(Customer *a, Customer *b)
 {
-    return(a.slots_requested > b.slots_requested);
-}
-
+    iter_swap(*a, *b);
+}*/
 
 void sjf_scheduling(deque<Customer> &customers)
 {
-    int total_num_of_customers = count_customers - 1;
-    
-    //Find the index of first high priority customer
-    int flag;
     for(int i=0; i<customers.size(); i++)
-    {   
-        if(customers[i].priority == 0)
-        {
-            flag = i;
-            cout<<"flag: "<<flag<<endl;
-            break;
-        }
-    }
-
-    int index;
-    int current_time;
-    int next_customer;
-    int count;
-    int length;
-
-    //SJF For High Priority Customers
-    index = 0;
-    count = flag;
-    current_time = 0;
-    deque<Customer> high_priority_customer;
-
-    for(int i=flag; i<total_num_of_customers; i++)
     {
-        for(int j=count; j<total_num_of_customers; j++)
+        for(int j=0; j<customers.size()-i-1; j++)
         {
-            if(customers[j].arrival_time <= current_time)
+            if(customers[j].arrival_time > customers[j+1].arrival_time)
             {
-                high_priority_customer.push_back(customers[j]);
-                count++;
-            }
-            else
-            {
-                break;
+                swap(customers[j], customers[j+1]);
             }
         }
     }
 
+    customers[0].finish_time = customers[0].arrival_time + customers[0].slots_requested;
+    customers[0].turnaround_time = customers[0].finish_time - customers[0].arrival_time;
+    customers[0].wait_time = customers[0].turnaround_time - customers[0].slots_requested;
 
-    sort(high_priority_customer.begin(), high_priority_customer.end(), compare);
+    int temp, val;
 
-    next_customer = high_priority_customer[0].customer_id;
-    customers[next_customer].finish_time = customers[next_customer].arrival_time + customers[next_customer].slots_requested;
-    customers[next_customer].wait_time = current_time - customers[next_customer].arrival_time;
-    customers[next_customer].turnaround_time = customers[next_customer].wait_time + customers[next_customer].finish_time;
-    current_time = current_time + customers[next_customer].finish_time;
-
-    for(int i=0; i<high_priority_customer.size(); i++)
+    for(int i=1; i<customers.size(); i++)
     {
-        high_priority_customer[i] = high_priority_customer[i+1];
+        temp = customers[i-1].finish_time;
+        int low = customers[i].slots_requested;
+
+        for(int j=i; j<customers.size(); j++)
+        {
+            if(temp >= customers[j].arrival_time && low >= customers[j].slots_requested)
+            {
+                low = customers[j].slots_requested;
+                val = j;
+            }
+        }
+
+        customers[val].finish_time = temp + customers[val].slots_requested;
+        customers[val].turnaround_time = customers[val].finish_time - customers[val].arrival_time;
+        customers[val].wait_time = customers[val].turnaround_time - customers[val].slots_requested;
+
+        swap(customers[val], customers[i]);
     }
-   
-    //SJF for Regular Priority Customers
-   
 }
-*/
+
 
 // process command line arguments
 int main(int argc, char *argv[])
@@ -203,6 +180,7 @@ int main(int argc, char *argv[])
     // read information from file, initialize customers queue
     initialize_system(in_file, arrival_events, customers);
 
+    //Seperates Customers into two queues based on their priority
     deque<Customer> high_priority_customers;
     deque<Customer> low_priority_customers;
     
@@ -218,19 +196,28 @@ int main(int argc, char *argv[])
         }
     }
 
-    cout<<"Priority 0:"<<endl;
+
+    cout<<"Priority 0 before sjf:"<<endl;
     for(int j=0; j<high_priority_customers.size(); j++)
     {
         cout<<high_priority_customers[j].customer_id<<endl;
     }
 
-    cout<<"Priority 1:"<<endl;
+/*  cout<<"Priority 1:"<<endl;
     for(int j=0; j<low_priority_customers.size(); j++)
     {
         cout<<low_priority_customers[j].customer_id<<endl;
+    }*/
+
+    sjf_scheduling(high_priority_customers);
+
+    cout<<"Priority 0 after sjf:"<<endl;
+    for(int j=0; j<high_priority_customers.size(); j++)
+    {
+        cout<<high_priority_customers[j].customer_id<<endl;
     }
 
-    //sjf_scheduling(customers);
+    sjf_scheduling(low_priority_customers);
 
 
 /***********************************************************************
