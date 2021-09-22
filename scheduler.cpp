@@ -111,11 +111,6 @@ void print_state(
     cout << '\n';
 }
 
-/*void swap(Customer *a, Customer *b)
-{
-    iter_swap(*a, *b);
-}*/
-
 void sjf_scheduling(deque<Customer> &customers)
 {
     for(int i=0; i<customers.size(); i++)
@@ -128,31 +123,28 @@ void sjf_scheduling(deque<Customer> &customers)
             }
         }
     }
-
+    
     customers[0].finish_time = customers[0].arrival_time + customers[0].slots_requested;
     customers[0].turnaround_time = customers[0].finish_time - customers[0].arrival_time;
     customers[0].wait_time = customers[0].turnaround_time - customers[0].slots_requested;
-
+    
     int temp, val;
 
     for(int i=1; i<customers.size(); i++)
     {
         temp = customers[i-1].finish_time;
         int low = customers[i].slots_requested;
-
         for(int j=i; j<customers.size(); j++)
         {
-            if(temp >= customers[j].arrival_time && low >= customers[j].slots_requested)
+            if(temp <= customers[j].arrival_time && low >= customers[j].slots_requested)
             {
                 low = customers[j].slots_requested;
                 val = j;
             }
         }
-
         customers[val].finish_time = temp + customers[val].slots_requested;
         customers[val].turnaround_time = customers[val].finish_time - customers[val].arrival_time;
         customers[val].wait_time = customers[val].turnaround_time - customers[val].slots_requested;
-
         swap(customers[val], customers[i]);
     }
 }
@@ -203,11 +195,11 @@ int main(int argc, char *argv[])
         cout<<high_priority_customers[j].customer_id<<endl;
     }
 
-/*  cout<<"Priority 1:"<<endl;
+    cout<<"Priority 1:"<<endl;
     for(int j=0; j<low_priority_customers.size(); j++)
     {
         cout<<low_priority_customers[j].customer_id<<endl;
-    }*/
+    }
 
     sjf_scheduling(high_priority_customers);
 
@@ -219,6 +211,12 @@ int main(int argc, char *argv[])
 
     sjf_scheduling(low_priority_customers);
 
+    cout<<"Priority 1 after sjf:"<<endl;
+    for(int j=0; j<low_priority_customers.size(); j++)
+    {
+        cout<<low_priority_customers[j].customer_id<<endl;
+    }
+
 
 /***********************************************************************
 /*                   Copy results to queue for printing                 */
@@ -226,7 +224,6 @@ int main(int argc, char *argv[])
 
    /* int current_id = -1; // who is using the machine now, -1 means nobody
     deque<int> queue; // waiting queue
-
     bool all_done = false;
     for(int time=0; !all_done; time++)
     {
@@ -235,12 +232,10 @@ int main(int argc, char *argv[])
             queue.push_back(customers[0].customer_id);
             customers.pop_front();
         }
-
         if(current_id >= 0)
         {
             current_id = -1;
         }
-
         if(current_id == -1)
         {
             if(!queue.empty())
