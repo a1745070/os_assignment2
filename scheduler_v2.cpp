@@ -167,22 +167,22 @@ void hrrn(deque<Customer> &customers, int current)
         }
     }
 
-    Customer cmp = NULL;
+    Customer *cmp = nullptr;
     int index = -1;
     for(int i=0; i<customers.size(); i++)
     {
         // find the customer(s) with the highest response ratio 
         if(customers[i].ratio == maxi)
         {
-            if(cmp == NULL)
+            if(cmp == nullptr)
             {
-                cmp = customers[i];
+                cmp = &customers[i];
                 index = i;
             }
             // calculate shortest job if more than one customers with same ratio
-            else if (customers[i].burst_time < cmp.burst_time)
+            else if (customers[i].burst_time < cmp->burst_time)
             {
-                cmp = customers[i];
+                cmp = &customers[i];
                 index = i;
             }
             
