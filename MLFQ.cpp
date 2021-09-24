@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
         // if machine is empty, schedule a new customer
         if (current_id == -1)
         {
-          int promotion_interval=10;
+          int promotion_interval=10;//still need to decide the value of the interval
           
           if(P1.front().wait_time >= promotion_interval)
 
