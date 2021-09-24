@@ -7,37 +7,38 @@ created by Andrey Kan
 andrey.kan@adelaide.edu.au
 2021
 */
+
 #include <iostream>
 #include <fstream>
 #include <deque>
 #include <vector>
+#include <algorithm>
+#include <climits>
 using namespace std;
 
-const int TIME_ALLOWANCE = 8;  // allow to use up to this number of time slots at once
 const int PRINT_LOG = 0; // print detailed execution trace
+int count_customers = 0;
 
 class Customer
 {
 public:
     string name;
+    int customer_id;
     int priority;
     int arrival_time;
-    int slots_remaining; // how many time slots are still needed
-    int playing_since;
-<<<<<<< HEAD
-=======
-    int finish_time;
-    int turnaround_time;
+    int burst_time; // slots requested
     int wait_time;
->>>>>>> 3c089d4f86f90058398b71d05ca1bbad36cbf25f
+    float ratio;
 
-    Customer(string par_name, int par_priority, int par_arrival_time, int par_slots_remaining)
+    Customer(string par_name, int par_customer_id, int par_priority, int par_arrival_time, int par_slots_requested)
     {
         name = par_name;
+        customer_id = par_customer_id;
         priority = par_priority;
         arrival_time = par_arrival_time;
-        slots_remaining = par_slots_remaining;
-        playing_since = -1;
+        burst_time = par_slots_requested;
+        wait_time = -1;
+        ratio = -1;
     }
 };
 
@@ -54,10 +55,11 @@ public:
     }
 };
 
+
 void initialize_system(
     ifstream &in_file,
     deque<Event> &arrival_events,
-    vector<Customer> &customers)
+    deque<Customer> &customers)
 {
     string name;
     int priority, arrival_time, slots_requested;
@@ -66,7 +68,7 @@ void initialize_system(
     int customer_id = 0;
     while (in_file >> name >> priority >> arrival_time >> slots_requested)
     {
-        Customer customer_from_file(name, priority, arrival_time, slots_requested);
+        Customer customer_from_file(name, customer_id, priority, arrival_time, slots_requested);
         customers.push_back(customer_from_file);
 
         // new customer arrival event
@@ -74,6 +76,7 @@ void initialize_system(
         arrival_events.push_back(arrival_event);
 
         customer_id++;
+        count_customers++;
     }
 }
 
@@ -81,7 +84,7 @@ void print_state(
     ofstream &out_file,
     int current_time,
     int current_id,
-    const deque<Event> &arrival_events,
+    const deque<Customer> &customers,
     const deque<int> &customer_queue)
 {
     /************If (PRINT_LOG != 0), the program will not output .txt file*************/
@@ -95,9 +98,9 @@ void print_state(
     /***********************************************************************************/
     
     cout << current_time << ", " << current_id << '\n';
-    for (int i = 0; i < arrival_events.size(); i++)
+    for (int i = 0; i < customers.size(); i++)
     {
-        cout << "\t" << arrival_events[i].event_time << ", " << arrival_events[i].customer_id << ", ";
+        cout << "\t" << customers[i].priority << ", " << customers[i].customer_id << ", ";
     }
     cout << '\n';
     for (int i = 0; i < customer_queue.size(); i++)
@@ -107,8 +110,7 @@ void print_state(
     cout << '\n';
 }
 
-<<<<<<< HEAD
-=======
+/*
 void sjf_scheduling(deque<Customer> &customers)
 {
     for(int i=0; i<customers.size(); i++)
@@ -146,9 +148,55 @@ void sjf_scheduling(deque<Customer> &customers)
         swap(customers[val], customers[i]);
     }
 }
+*/
+
+void hrrn(deque<Customer> &customers, int current)
+{
+    // loop through customer queue and find the highest response ratio
+    float maxi = -1;
+    for(int i=0; i<customers.size(); i++)
+    {
+        // calculate current response ratio
+        customers[i].wait_time = current - customers[i].arrival_time;
+        customers[i].ratio = (customers[i].wait_time + customers[i].burst_time) / customers[i].burst_time;
+
+        // keep track of max value
+        if(customers[i].ratio > maxi)
+        {
+            maxi = customers[i].ratio;
+        }
+    }
+
+    Customer *cmp = nullptr;
+    int index = -1;
+    for(int i=0; i<customers.size(); i++)
+    {
+        // find the customer(s) with the highest response ratio 
+        if(customers[i].ratio == maxi)
+        {
+            if(cmp == nullptr)
+            {
+                cmp = &customers[i];
+                index = i;
+            }
+            // calculate shortest job if more than one customers with same ratio
+            else if (customers[i].burst_time < cmp->burst_time)
+            {
+                cmp = &customers[i];
+                index = i;
+            }
+            
+        }
+    }   
+
+    swap(customers[0], customers[index]);
 
 
->>>>>>> 3c089d4f86f90058398b71d05ca1bbad36cbf25f
+}
+
+
+
+
 // process command line arguments
 int main(int argc, char *argv[])
 {
@@ -166,18 +214,11 @@ int main(int argc, char *argv[])
     }
 
     deque<Event> arrival_events; // new customer arrivals
-    vector<Customer> customers; // information about each customer
+    deque<Customer> customers; // information about each customer
 
-    // read information from file, initialize events queue
+    // read information from file, initialize customers queue
     initialize_system(in_file, arrival_events, customers);
 
-<<<<<<< HEAD
-    int current_id = -1; // who is using the machine now, -1 means nobody
-    int time_out = -1; // time when current customer will be preempted
-    deque<int> queue; // waiting queue
-
-    // step by step simulation of each time slot
-=======
     //Seperates Customers into two queues based on their priority
     deque<Customer> high_priority_customers;
     deque<Customer> low_priority_customers;
@@ -207,7 +248,7 @@ int main(int argc, char *argv[])
         cout<<low_priority_customers[j].customer_id<<endl;
     }
 
-    sjf_scheduling(high_priority_customers);
+    // sjf_scheduling(high_priority_customers);
 
     cout<<"Priority 0 after sjf:"<<endl;
     for(int j=0; j<high_priority_customers.size(); j++)
@@ -215,7 +256,7 @@ int main(int argc, char *argv[])
         cout<<high_priority_customers[j].customer_id<<endl;
     }
 
-    sjf_scheduling(low_priority_customers);
+    // sjf_scheduling(low_priority_customers);
 
     cout<<"Priority 1 after sjf:"<<endl;
     for(int j=0; j<low_priority_customers.size(); j++)
@@ -230,64 +271,29 @@ int main(int argc, char *argv[])
 
    /* int current_id = -1; // who is using the machine now, -1 means nobody
     deque<int> queue; // waiting queue
->>>>>>> 3c089d4f86f90058398b71d05ca1bbad36cbf25f
     bool all_done = false;
-    for (int current_time = 0; !all_done; current_time++)
+    for(int time=0; !all_done; time++)
     {
-        // welcome newly arrived customers
-        while (!arrival_events.empty() && (current_time == arrival_events[0].event_time))
+        if(!customers.empty())
         {
-            queue.push_back(arrival_events[0].customer_id);
-            arrival_events.pop_front();
+            queue.push_back(customers[0].customer_id);
+            customers.pop_front();
         }
-<<<<<<< HEAD
-
-        // check if we need to take a customer off the machine
-        if (current_id >= 0)
-=======
         if(current_id >= 0)
->>>>>>> 3c089d4f86f90058398b71d05ca1bbad36cbf25f
         {
-            if (current_time == time_out)
-            {
-                int last_run = current_time - customers[current_id].playing_since;
-                customers[current_id].slots_remaining -= last_run;
-                if (customers[current_id].slots_remaining > 0)
-                {
-                    // customer is not done yet, waiting for the next chance to play
-                    queue.push_back(current_id);
-                }
-                current_id = -1; // the machine is free now
-            }
+            current_id = -1;
         }
-<<<<<<< HEAD
-
-        // if machine is empty, schedule a new customer
-        if (current_id == -1)
-=======
         if(current_id == -1)
->>>>>>> 3c089d4f86f90058398b71d05ca1bbad36cbf25f
         {
-            if (!queue.empty()) // is anyone waiting?
+            if(!queue.empty())
             {
                 current_id = queue.front();
                 queue.pop_front();
-                if (TIME_ALLOWANCE > customers[current_id].slots_remaining)
-                {
-                    time_out = current_time + customers[current_id].slots_remaining;
-                }
-                else
-                {
-                    time_out = current_time + TIME_ALLOWANCE;
-                }
-                customers[current_id].playing_since = current_time;
             }
         }
-        print_state(out_file, current_time, current_id, arrival_events, queue);
-
-        // exit loop when there are no new arrivals, no waiting and no playing customers
-        all_done = (arrival_events.empty() && queue.empty() && (current_id == -1));
-    }
+        print_state(out_file, time, current_id, customers, queue);
+        all_done = (customers.empty() && queue.empty() && current_id == -1);
+    }*/
 
     return 0;
 }
