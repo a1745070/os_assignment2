@@ -176,14 +176,34 @@ int main(int argc, char *argv[])
         // if machine is empty, schedule a new customer
         if (current_id == -1)
         {
+          int promotion_interval=10;
+          
+          if(P1.front().wait_time >= promotion_interval)
+
+           {
+
+            P0.push_back(P1.front());
+            P1.pop_front();
+            }
+   
+        current_time ++;
+
             if(!P0.empty() || !P1.empty())
             {
              //call HRRN (calculate whichever is not empty, if not both)
-            }
-            if (!queue.empty()) // is anyone waiting?
+             hrrn(customers,current_id);
+             if(P0.front().arrival_time>current_time)
             {
-                current_id = queue.front();
-                queue.pop_front();
+                current_id=P1.front().customer_id;
+                P1.pop_front();
+            }
+            else
+            {
+                current_id=P0.front().customer_id;
+                P0.pop_front();
+            }
+               // current_id = queue.front();
+                //queue.pop_front();
                 if (TIME_ALLOWANCE > customers[current_id].slots_remaining)
                 {
                     time_out = current_time + customers[current_id].slots_remaining;
@@ -206,24 +226,9 @@ int main(int argc, char *argv[])
 
 
 
-if(current_time >= P0.front().arrival_time)
-{
-     P0.customer_id.slots_remaining;
-
-}
-else if(current_time >= P1.front().arrival_time)
-{
-     P1.customer_id.slots_remaining;
-     // customers[current_id].slots_remaining;
-}
 
 
-    if(P1.front().waiting_time>= promotion interval){
 
-        push p1.front to p0
-        P1.front().push_back(P0);
-        P0.push_back(P1.front());
-    }
-   
 
-    current time ++
+
+
