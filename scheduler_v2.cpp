@@ -13,13 +13,12 @@ andrey.kan@adelaide.edu.au
 #include <deque>
 #include <vector>
 #include <algorithm>
-#include <stdlib.h>
 
 using namespace std;
 
 const int PRINT_LOG = 0; // print detailed execution trace
 int count_customers = 0;
-const int promotion_interval = 20;
+const int promotion_interval = 80;
 
 class Customer
 {
@@ -30,6 +29,8 @@ public:
     int arrival_time;
     int burst_time; // slots requested
     int wait_time;
+    int playing_since;
+    int slots_remaining;
     float ratio;
 
     Customer(string par_name, int par_customer_id, int par_priority, int par_arrival_time, int par_slots_requested)
@@ -39,6 +40,8 @@ public:
         priority = par_priority;
         arrival_time = par_arrival_time;
         burst_time = par_slots_requested;
+        slots_remaining = burst_time;
+        playing_since = -1;
         wait_time = -1;
         ratio = -1;
     }
@@ -104,8 +107,7 @@ void hrrn(deque<Customer> &customers, int current)
     for(int i=0; i<customers.size(); i++)
     {
         // calculate current response ratio
-        customers[i].wait_time = current - customers[i].arrival_time;
-        customers[i].ratio = (customers[i].wait_time + customers[i].burst_time) / customers[i].burst_time;
+        customers[i].ratio = (customers[i].wait_time + customers[i].slots_remaining) / customers[i].slots_remaining;
 
         // keep track of max value
         if(customers[i].ratio > maxi)
@@ -127,7 +129,7 @@ void hrrn(deque<Customer> &customers, int current)
                 index = i;
             }
             // calculate shortest job if more than one customers with same ratio
-            else if (customers[i].burst_time < cmp->burst_time)
+            else if (customers[i].slots_remaining < cmp->slots_remaining)
             {
                 cmp = &customers[i];
                 index = i;
@@ -137,7 +139,6 @@ void hrrn(deque<Customer> &customers, int current)
     }   
 
     swap(customers[0], customers[index]);
-
 
 }
 
@@ -163,8 +164,7 @@ int main(int argc, char *argv[])
     deque<Customer> customers; // information about each customer
 
     // read information from file, initialize customers queue
-    initialize_system(in_file, customers);    
-    //int n = customers.size();
+    initialize_system(in_file, customers); 
     int current_id = -1;
 
     //Seperates Customers into two queues based on their priority
@@ -175,6 +175,7 @@ int main(int argc, char *argv[])
     // step by step simulation of each time slot
     bool all_done = false;
     int time_out = -1;
+    Customer *executing = nullptr; // customer currently using the arcade
     for (int current_time = 0; !all_done; current_time++)
     {
         // welcome newly arrived customers
@@ -193,15 +194,51 @@ int main(int argc, char *argv[])
             customers.pop_front();
         }
         
-        // cout << current_id << endl;
+        cout << current_time << " " << current_id << endl;
         // check if we need to take a customer off the machine
         if (current_id >= 0)
         {
             if (current_time == time_out)
             {
-                current_id = -1; // the machine is free now
+                // the machine is free now
+                current_id = -1;
+                executing = nullptr;
+            }
+            else if(!P0.empty())
+            {
+                if (executing->priority == 1)
+                {
+                    executing->slots_remaining -= (current_time - executing->playing_since);
+                    if(executing->slots_remaining > 0)
+                    {
+                        P1.push_front(*executing);
+                    }
+                    current_id = P0.front().customer_id;
+                    executing = &P0.front();
+                    time_out = current_time + P0.front().slots_remaining;
+                    P0.pop_front();
+                }
+                
             }
         }
+        // cout << "test1\n";
+
+        // calculate waiting time
+        if(!P0.empty())
+        {
+            for(int i=0; i<P0.size(); i++)
+            {
+                P0[i].wait_time ++;
+            }
+        }
+        if(!P1.empty())
+        {
+            for(int i=0; i<P1.size(); i++)
+            {
+                P1[i].wait_time ++;
+            }
+        }
+
         // if machine is empty, schedule a new customer
         if (current_id == -1)
         {
@@ -226,56 +263,32 @@ int main(int argc, char *argv[])
             if(!P0.empty())
             {
                 current_id = P0.front().customer_id;
-                time_out = current_time + P0.front().burst_time;
+                P0.front().playing_since = current_time;
+                executing = &P0.front();
+                time_out = current_time + P0.front().slots_remaining;
                 P0.pop_front();
             }
             else if(!P1.empty())
             {
                 current_id = P1.front().customer_id;
-                time_out = current_time + P1.front().burst_time;
+                P0.front().playing_since = current_time;
+                executing = &P1.front();
+                time_out = current_time + P1.front().slots_remaining;
                 P1.pop_front();
             }
 
         }
+
+        
+
         print_state(out_file, current_time, current_id);
 
-        // cin.get();
+        //cin.get();
 
         // exit loop when there are no new arrivals, no waiting and no playing customers
         all_done = (customers.empty() && P0.empty() && P1.empty() && (current_id == -1));
     }
 
-
-
-/***********************************************************************
-/*                   Copy results to queue for printing                 */
-/************************************************************************/ 
-
-   /* int current_id = -1; // who is using the machine now, -1 means nobody
-    deque<int> queue; // waiting queue
-    bool all_done = false;
-    for(int time=0; !all_done; time++)
-    {
-        if(!customers.empty())
-        {
-            queue.push_back(customers[0].customer_id);
-            customers.pop_front();
-        }
-        if(current_id >= 0)
-        {
-            current_id = -1;
-        }
-        if(current_id == -1)
-        {
-            if(!queue.empty())
-            {
-                current_id = queue.front();
-                queue.pop_front();
-            }
-        }
-        print_state(out_file, time, current_id, customers, queue);
-        all_done = (customers.empty() && queue.empty() && current_id == -1);
-    }*/
 
     return 0;
 }
