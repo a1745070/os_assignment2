@@ -20,7 +20,7 @@ const int PRINT_LOG = 0; // print detailed execution trace
 int count_customers = 0;
 const int default_time_allowance = 4;
 const int p0_promotion = 100;
-const int p1_promotion = 350;   
+const int p1_promotion = 400;   
 
 class Customer
 {
