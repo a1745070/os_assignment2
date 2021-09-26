@@ -18,9 +18,9 @@ using namespace std;
 
 const int PRINT_LOG = 0; // print detailed execution trace
 int count_customers = 0;
-const int default_time_allowance = 8;
+const int default_time_allowance = 4;
 const int p0_promotion = 100;
-const int p1_promotion = 200;   
+const int p1_promotion = 360;   
 
 class Customer
 {
@@ -214,12 +214,12 @@ int main(int argc, char *argv[])
                     // customer is not done yet, push to lower waiting queues according to priority
                     if(executing->priority == 0)
                     {
-                        // executing->time_limit += executing->time_limit/2;
+                        executing->time_limit += executing->time_limit;
                         P0.push_back(*executing);
                     }
                     else
                     {
-                        // executing->time_limit += executing->time_limit/2;
+                        executing->time_limit += executing->time_limit;
                         P1.push_back(*executing);
                     }   
                 }
