@@ -18,7 +18,9 @@ using namespace std;
 
 const int PRINT_LOG = 0; // print detailed execution trace
 int count_customers = 0;
-const int promotion_interval = 200;
+const int default_time_allowance = 8;
+const int p0_promotion = 100;
+const int p1_promotion = 200;   
 
 class Customer
 {
@@ -27,10 +29,10 @@ public:
     int customer_id;
     int priority;
     int arrival_time;
-    int burst_time; // slots requested
+    int slots_remaining; // slots requested
+    int time_limit;
     int wait_time;
     int playing_since;
-    int slots_remaining;
     float ratio;
 
     Customer(string par_name, int par_customer_id, int par_priority, int par_arrival_time, int par_slots_requested)
@@ -39,8 +41,8 @@ public:
         customer_id = par_customer_id;
         priority = par_priority;
         arrival_time = par_arrival_time;
-        burst_time = par_slots_requested;
-        slots_remaining = burst_time;
+        slots_remaining = par_slots_requested;
+        time_limit = default_time_allowance;
         playing_since = -1;
         wait_time = -1;
         ratio = -1;
@@ -74,29 +76,11 @@ void print_state(
     //const deque<Customer> &customers,
     //const deque<int> &customer_queue)
 {
-    /************If (PRINT_LOG != 0), the program will not output .txt file*************/
-    
     out_file << current_time << " " << current_id << '\n';
     if (PRINT_LOG == 0)
     {
         return;
     }
-    
-    /***********************************************************************************/
-
-    /*
-    cout << current_time << ", " << current_id << '\n';
-    for (int i = 0; i < customers.size(); i++)
-    {
-        cout << "\t" << customers[i].priority << ", " << customers[i].customer_id << ", ";
-    }
-    cout << '\n';
-    for (int i = 0; i < customer_queue.size(); i++)
-    {
-        cout << "\t" << customer_queue[i] << ", ";
-    }
-    cout << '\n';
-    */
 }
 
 
@@ -142,7 +126,25 @@ void hrrn(deque<Customer> &customers, int current)
 
 }
 
+// set the running process time_out with current process
+int addProcess(Customer* executing, int current_time)
+{
+    int time_out = 0;
+    if (executing->time_limit > executing->slots_remaining)
+    {
+        // process can be finished within time limit
+        time_out = current_time + executing->slots_remaining;
+    }
+    else
+    {
+        // set time out time
+        time_out = current_time + executing->time_limit;
+    }
+    executing->playing_since = current_time;
 
+    return time_out;
+
+}
 
 
 // process command line arguments
@@ -168,6 +170,7 @@ int main(int argc, char *argv[])
     int current_id = -1;
 
     //Seperates Customers into two queues based on their priority
+    std::deque<Customer> waiting_queue;
     std::deque<Customer> P0; // high priority
     std::deque<Customer> P1; // low priority
 
@@ -183,6 +186,7 @@ int main(int argc, char *argv[])
         {
             // cout << customers[0].customer_id << " " << customers[0].arrival_time << endl;
             // push customers into waiting queues accorging to priority
+            /*
             if(customers[0].priority == 0)
             {
                 P0.push_back(customers[0]);
@@ -192,6 +196,10 @@ int main(int argc, char *argv[])
                 P1.push_back(customers[0]);
             }   
             customers.pop_front();
+            */
+            waiting_queue.push_back(customers[0]);
+            customers.pop_front();
+
         }
         
         // cout << current_time << " " << current_id << endl;
@@ -200,10 +208,27 @@ int main(int argc, char *argv[])
         {
             if (current_time == time_out)
             {
+                executing->slots_remaining -= (current_time - executing->playing_since);
+                if (executing->slots_remaining > 0)
+                {
+                    // customer is not done yet, push to lower waiting queues according to priority
+                    if(executing->priority == 0)
+                    {
+                        // executing->time_limit += executing->time_limit/2;
+                        P0.push_back(*executing);
+                    }
+                    else
+                    {
+                        // executing->time_limit += executing->time_limit/2;
+                        P1.push_back(*executing);
+                    }   
+                }
                 // the machine is free now
                 current_id = -1;
                 executing = nullptr;
             }
+
+            /*
             else if(!P0.empty())
             {
                 if (executing->priority == 1)
@@ -220,10 +245,19 @@ int main(int argc, char *argv[])
                 }
                 
             }
+            */
         }
         // cout << "test1\n";
 
         // calculate waiting time
+        if(!waiting_queue.empty())
+        {
+            for(int i=0; i<waiting_queue.size(); i++)
+            {
+                waiting_queue[i].wait_time ++;
+            }
+
+        }
         if(!P0.empty())
         {
             for(int i=0; i<P0.size(); i++)
@@ -252,27 +286,42 @@ int main(int argc, char *argv[])
                 hrrn(P1, current_time);
             }
 
-            if(!P0.empty())
+            // calculate main customer queue first
+            if(!waiting_queue.empty())
             {
+                current_id = waiting_queue.front().customer_id;
+                executing = &waiting_queue.front();
+                waiting_queue.pop_front();
+                time_out = addProcess(executing, current_time);
+            }
+            else if(!P0.empty())
+            {
+                // push P0 to main queue
                 current_id = P0.front().customer_id;
                 executing = &P0.front();
-                executing->playing_since = current_time;
-                time_out = current_time + executing->slots_remaining;
                 P0.pop_front();
+                time_out = addProcess(executing, current_time);
             }
             else if(!P1.empty())
             {
                 current_id = P1.front().customer_id;
                 executing = &P1.front();
-                executing->playing_since = current_time;
-                time_out = current_time + executing->slots_remaining;
                 P1.pop_front();
+                time_out = addProcess(executing, current_time);
             }
 
-            // check for P1 promotion
-            if(!P1.empty() && P1.front().wait_time >= promotion_interval)
+          
+            // check for P0 promotion
+            if(!P0.empty() && P0.front().wait_time >= p0_promotion)
             {
-                P1.front().priority = 0;
+                waiting_queue.push_back(P0.front());
+                P0.pop_front();
+            }
+  
+            // check for P1 promotion
+            if(!P1.empty() && P1.front().wait_time >= p1_promotion)
+            {
+                // P1.front().priority = 0;
                 P0.push_back(P1.front());
                 P1.pop_front();
             }
