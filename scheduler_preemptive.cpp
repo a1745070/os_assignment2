@@ -1,4 +1,3 @@
-
 // a1768127, Shue Hong, Lee
 // a1761407, Kwan Han, Li
 // a1745070, Archie, Verma
@@ -21,7 +20,7 @@ const int PRINT_LOG = 0; // print detailed execution trace
 int count_customers = 0;
 const int default_time_allowance = 4;
 const int p0_promotion = 100;
-const int p1_promotion = 360;   
+const int p1_promotion = 350;   
 
 class Customer
 {
@@ -74,14 +73,26 @@ void print_state(
     ofstream &out_file,
     int current_time,
     int current_id)
-    //const deque<Customer> &customers,
-    //const deque<int> &customer_queue)
 {
     out_file << current_time << " " << current_id << '\n';
     if (PRINT_LOG == 0)
     {
         return;
     }
+
+    /*
+    cout << current_time << ", " << current_id << '\n';
+    for (int i = 0; i < customers.size(); i++)
+    {
+        cout << "\t" << customers[i].priority << ", " << customers[i].customer_id << ", ";
+    }
+    cout << '\n';
+    for (int i = 0; i < customer_queue.size(); i++)
+    {
+        cout << "\t" << customer_queue[i] << ", ";
+    }
+    cout << '\n';
+    */
 }
 
 
@@ -118,13 +129,11 @@ void hrrn(deque<Customer> &customers, int current)
             {
                 cmp = &customers[i];
                 index = i;
-            }
-            
+            }  
         }
     }   
 
     swap(customers[0], customers[index]);
-
 }
 
 // set the running process time_out with current process
@@ -144,7 +153,6 @@ int addProcess(Customer* executing, int current_time)
     executing->playing_since = current_time;
 
     return time_out;
-
 }
 
 
@@ -185,25 +193,11 @@ int main(int argc, char *argv[])
         // welcome newly arrived customers
         while (!customers.empty() && (current_time == customers[0].arrival_time))
         {
-            // cout << customers[0].customer_id << " " << customers[0].arrival_time << endl;
-            // push customers into waiting queues accorging to priority
-            /*
-            if(customers[0].priority == 0)
-            {
-                P0.push_back(customers[0]);
-            }
-            else
-            {
-                P1.push_back(customers[0]);
-            }   
-            customers.pop_front();
-            */
             waiting_queue.push_back(customers[0]);
             customers.pop_front();
 
         }
         
-        // cout << current_time << " " << current_id << endl;
         // check if we need to take a customer off the machine
         if (current_id >= 0)
         {
@@ -228,27 +222,7 @@ int main(int argc, char *argv[])
                 current_id = -1;
                 executing = nullptr;
             }
-
-            /*
-            else if(!P0.empty())
-            {
-                if (executing->priority == 1)
-                {
-                    executing->slots_remaining -= (current_time - executing->playing_since);
-                    if(executing->slots_remaining > 0)
-                    {
-                        P1.push_front(*executing);
-                    }
-                    current_id = P0.front().customer_id;
-                    executing = &P0.front();
-                    time_out = current_time + P0.front().slots_remaining;
-                    P0.pop_front();
-                }
-                
-            }
-            */
         }
-        // cout << "test1\n";
 
         // calculate waiting time
         if(!waiting_queue.empty())
@@ -322,23 +296,16 @@ int main(int argc, char *argv[])
             // check for P1 promotion
             if(!P1.empty() && P1.front().wait_time >= p1_promotion)
             {
-                // P1.front().priority = 0;
                 P0.push_back(P1.front());
                 P1.pop_front();
             }
-
         }
 
-        
-
         print_state(out_file, current_time, current_id);
-
-        //cin.get();
 
         // exit loop when there are no new arrivals, no waiting and no playing customers
         all_done = (customers.empty() && P0.empty() && P1.empty() && (current_id == -1));
     }
-
 
     return 0;
 }
