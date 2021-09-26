@@ -181,32 +181,31 @@ int main(int argc, char *argv[])
         {   
             main_queue.push_back(customers[0]);
             customers.pop_front();
-            int count = 0;
         }
 
-        while(count < main_time_allowance)
-        {
+        // while(count < main_time_allowance)
+        // {
             
-            count++;
-        }
-        customers[0].slots_remaining = customers[0].burst_time - main_time_allowance;
-        if(customers[0].slots_remaining > 0)
-        {
-            if(customers[0].priority == 0)
-            {
-                P0.push_back(customers[0]);
+        //     count++;
+        // }
+        // customers[0].slots_remaining = customers[0].burst_time - main_time_allowance;
+        // if(customers[0].slots_remaining > 0)
+        // {
+        //     if(customers[0].priority == 0)
+        //     {
+        //         P0.push_back(customers[0]);
                 
-            }
-            else if(customers[0].priority == 1)
-            {
-                P1.push_back(customers[0]);
-                customers.pop_front();
-            }
-        }
-        else if(customers[0].slots_remaining <=0)
-        {
-            customers.pop_front();
-        }
+        //     }
+        //     else if(customers[0].priority == 1)
+        //     {
+        //         P1.push_back(customers[0]);
+        //         customers.pop_front();
+        //     }
+        // }
+        // else if(customers[0].slots_remaining <=0)
+        // {
+        //     customers.pop_front();
+        // }
 
         if(current_id >= 0)
         {
@@ -248,9 +247,9 @@ int main(int argc, char *argv[])
                 time_out = current_time + P1.front().slots_remaining;
                 P1.pop_front();
             }
-            print_state(out_file, current_time, current_id);
-            all_done = (customers.empty() && P0.empty() && P1.empty() && (current_id == -1));
         }
+        print_state(out_file, current_time, current_id);
+        all_done = (customers.empty() && P0.empty() && P1.empty() && (current_id == -1));
     }
     return 0;
 }
